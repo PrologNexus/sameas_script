@@ -16,8 +16,7 @@
 
 :- use_module(library(conf_ext)).
 :- use_module(library(file_ext)).
-:- use_module(library(semweb/hdt_api)).
-:- use_module(library(semweb/hdt_dataset)).
+:- use_module(library(semweb/hdt_file)).
 :- use_module(library(semweb/rdf_export)).
 
 :- debug(id_extract).
@@ -35,7 +34,7 @@
 % extension graph.
 
 extract_extension :-
-  cli_argument(lod_a_lot, FromFile),
+  cli_argument('lod-a-lot', FromFile),
   hdt_call_file(FromFile, extract_extension_),
   hdt_create(FromFile).
 extract_extension_(Hdt) :-
@@ -53,7 +52,7 @@ extract_extension_(Hdt, Out) :-
 %! extract_schema is det.
 
 extract_schema :-
-  cli_argument(lod_a_lot, FromFile),
+  cli_argument('lod-a-lot', FromFile),
   hdt_call_file(FromFile, extract_schema_).
 extract_schema_(Hdt) :-
   cli_argument(dir, ., Dir),

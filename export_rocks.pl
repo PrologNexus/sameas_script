@@ -1,14 +1,19 @@
-:- module(
-  export_rocks,
-  [
-    export_index/0
-  ]
-).
+:- module(export_rocks, [run/0]).
 
 /** <module> Export RocksDB
 
-The directory in which the exported files will be written can be
-specified through the `--dir="your/dir"' flag.
+The input directory containing the RocksDB subdirectories can be
+specified with the `--input="/abc/xyz/"' flag.
+
+The output TSV file can be specified with the `--output="/abc/xyz/"'
+flag.  The file is archived using GNU tar and compressed using GNU
+zip.
+
+Example run:
+
+```sh
+$ swipl -s export_rocks.pl -g run -t halt --input=/abc/xyz/ --output=/abc/xyz/
+```
 
 ---
 
@@ -18,58 +23,56 @@ specified through the `--dir="your/dir"' flag.
 
 :- use_module(library(apply)).
 :- use_module(library(archive)).
-:- use_module(library(yall)).
 
 :- use_module(library(conf_ext)).
 :- use_module(library(file_ext)).
 :- use_module(library(rocksdb)).
 
+run :-
+  % CLI arguments
+  cli_argument(input, ., FromDir),
+  cli_argument(output, ., ToDir),
 
+  export_id_terms(FromDir, ToDir, ToFile1),
+  export_term_id(FromDir, ToDir, ToFile2),
 
+  % archive & compress
+  directory_file_path(ToDir, 'sameAs-implicit.tgz', ToFile),
+  archive_create(ToFile, [ToFile1,ToFile2], [filter(gzip),format(gnutar)]),
+  maplist(delete_file, [ToFile1,ToFile2]).
 
+export_id_terms(FromDir0, ToDir, ToFile) :-
+  directory_file_path(FromDir0, id_terms, FromDir),
+  directory_file_path(ToDir, 'id_terms.dat', ToFile),
+  call_rocksdb(
+    FromDir,
+    export_id_terms_hdt(ToFile),
+    [key(int64),merge(rocksdb_merge_set),value(term)]
+  ).
 
-%! export_index is det.
+export_id_terms_hdt(ToFile, Hdt) :-
+  write_to_file(ToFile, export_id_terms_stream(Hdt)).
 
-export_index :-
-  cli_argument(dir, Dir),
-  export_index_id_terms(Dir, File1),
-  export_index_term_id(Dir, File2),
-  directory_file_path(Dir, 'sameAs-implicit.tgz', File),
-  archive_create(File, [File1,File2], [filter(gzip),format(gnutar)]),
-  maplist(delete_file, [File1,File2]).
-
-
-
-%! export_index_id_terms(+Directory:atom, -File:atom) is det.
-
-export_index_id_terms(Dir, File) :-
-  directory_file_path(Dir, 'id_terms.dat', File),
-  write_to_file(
-    File,
-    [Out]>>(
-      forall(
-        rocks(id_terms, Id, Terms),
-        (
-          format(Out, "~a", [Id]),
-          maplist(format(Out, " ~a"), Terms),
-          format(Out, "\n", [])
-        )
-      )
+export_id_terms_stream(Hdt, Out) :-
+  forall(
+    rocksdb_key_value(Hdt, Id, Terms),
+    (
+      format(Out, "~a", [Id]),
+      maplist(format(Out, " ~a"), Terms),
+      format(Out, "\n", [])
     )
   ).
 
+export_term_id(FromDir0, ToDir, ToFile) :-
+  directory_file_path(FromDir0, term_id, FromDir),
+  directory_file_path(ToDir, 'term_id.dat', ToFile),
+  call_rocksdb(FromDir, export_term_id_hdt(ToFile), [key(atom),value(int64)]).
 
+export_term_id_hdt(ToFile, Hdt) :-
+  write_to_file(ToFile, export_term_id_stream(Hdt)).
 
-%! export_index_term_id(+Directory:atom, -File:atom) is det.
-
-export_index_term_id(Dir, File) :-
-  directory_file_path(Dir, 'term_id.dat', File),
-  write_to_file(
-    File,
-    [Out]>>(
-      forall(
-        rocks(term_id, Term, Id),
-        format(Out, "~a ~a\n", [Term,Id])
-      )
-    )
+export_term_id_stream(Hdt, Out) :-
+  forall(
+    rocksdb_key_value(Hdt, Term, Id),
+    format(Out, "~a ~a\n", [Term,Id])
   ).
