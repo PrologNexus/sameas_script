@@ -1,4 +1,4 @@
-:- module(tsv2rocks, [run/0]).
+:- module(tsv2rocksdb, [run/0]).
 
 /** <module> TSV-2-RocksDB
 
@@ -11,7 +11,7 @@ with the `--output=DIRECTORY' command-line argument.
 Example invocation:
 
 ```sh
-$ swipl -s tsv2rocks.pl -g run -t halt --intput=/abc/xyz/data.tsv.gz --output=/abc/xyz/
+$ swipl -s tsv2rocksdb.pl -g run -t halt --intput=/abc/xyz/data.tsv.gz --output=/abc/xyz/
 ```
 
 ---
@@ -38,7 +38,7 @@ $ swipl -s tsv2rocks.pl -g run -t halt --intput=/abc/xyz/data.tsv.gz --output=/a
    rlimit(nofile, _, 10 000).
 
 run :-
-  cli_argument(input, 'id-sorted.tsv.gz', File),
+  cli_argument(input, 'sameas-sorted.tsv.gz', File),
   flag(number_of_sets, _, 0),
   (   debugging(id)
   ->  get_time(Start),
@@ -60,7 +60,11 @@ run(In) :-
   setup_call_cleanup(
     (
       rocksdb_open(Dir1, Term2id, [key(atom),value(int64)]),
-      rocksdb_open(Dir2, Id2terms, [key(int64),merge(rocksdb_merge_set),value(term)])
+      rocksdb_open(
+        Dir2,
+        Id2terms,
+        [key(int64),merge(rocksdb_merge_set),value(term)]
+      )
     ),
     (
       repeat,

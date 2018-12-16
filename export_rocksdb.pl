@@ -1,4 +1,4 @@
-:- module(export_rocks, [run/0]).
+:- module(export_rocksdb, [run/0]).
 
 /** <module> Export RocksDB
 
@@ -12,7 +12,7 @@ zip.
 Example run:
 
 ```sh
-$ swipl -s export_rocks.pl -g run -t halt --input=/abc/xyz/ --output=/abc/xyz/
+$ swipl -s export_rocksdb.pl -g run -t halt --input=/abc/xyz/ --output=/abc/xyz/
 ```
 
 ---
@@ -37,9 +37,9 @@ run :-
   export_term_id(FromDir, ToDir, ToFile2),
 
   % archive & compress
-  directory_file_path(ToDir, 'sameAs-implicit.tgz', ToFile),
-  archive_create(ToFile, [ToFile1,ToFile2], [filter(gzip),format(gnutar)]),
-  maplist(delete_file, [ToFile1,ToFile2]).
+  directory_file_path(ToDir, 'sameas-implicit.tgz', ToFile),
+  archive_create(ToFile, [ToFile1,ToFile2], [filter(gzip),format(gnutar)]).
+  %maplist(delete_file, [ToFile1,ToFile2]).
 
 export_id_terms(FromDir0, ToDir, ToFile) :-
   directory_file_path(FromDir0, id_terms, FromDir),
