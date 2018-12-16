@@ -1,2 +1,2 @@
 #!/bin/sh
-swipl -s sameas_ranking.pl --input="/home/wbeek/data/sameas/sameas-ranking.tsv.gz" --output="/home/wbeek/tmp/sameas/ranking/"
+swipl -s sameas_ranking.pl -g run -t halt --input="/scratch/wbeek/data/sameas/sameas-ranking.tsv.gz" --output="/scratch/wbeek/tmp/sameas/ranking/"
