@@ -38,8 +38,8 @@ run :-
 
   % archive & compress
   directory_file_path(ToDir, 'sameas-implicit.tgz', ToFile),
-  archive_create(ToFile, [ToFile1,ToFile2], [filter(gzip),format(gnutar)]),
-  maplist(delete_file, [ToFile1,ToFile2]).
+  archive_create(ToFile, [ToFile1,ToFile2], [filter(gzip),format(gnutar)]).
+  %maplist(delete_file, [ToFile1,ToFile2]).
 
 export_id_terms(FromDir0, ToDir, ToFile) :-
   directory_file_path(FromDir0, id_terms, FromDir),

@@ -1,7 +1,7 @@
 :- module(
   id_extract,
   [
-    extract_extension/0,
+    extract_explicit/0,
     extract_schema/0
   ]
 ).
@@ -25,7 +25,7 @@
 
 
 
-%! extract_extension is det.
+%! extract_explicit is det.
 %
 % Extracts the extension of the $\texttt{owl:sameAs}$ relation and
 % creates an HDT file that contains this extension.
@@ -33,15 +33,15 @@
 % The HDT file can be used to efficiently traverse the identity
 % extension graph.
 
-extract_extension :-
+extract_explicit :-
   cli_argument('lod-a-lot', FromFile),
-  hdt_call_file(FromFile, extract_extension_),
+  hdt_call_file(FromFile, extract_explicit_),
   hdt_create(FromFile).
-extract_extension_(Hdt) :-
+extract_explicit_(Hdt) :-
   cli_argument(dir, ., ToDir),
-  directory_file_path(ToDir, 'id-ext.nt', ToFile),
-  write_to_file(ToFile, extract_extension_(Hdt)).
-extract_extension_(Hdt, Out) :-
+  directory_file_path(ToDir, 'sameas-explicit.nt', ToFile),
+  write_to_file(ToFile, extract_explicit_(Hdt)).
+extract_explicit_(Hdt, Out) :-
   forall(
     hdt_tp0(Hdt, S, owl:sameAs, O),
     rdf_write_triple(Out, S, owl:sameAs, O)
@@ -56,7 +56,7 @@ extract_schema :-
   hdt_call_file(FromFile, extract_schema_).
 extract_schema_(Hdt) :-
   cli_argument(dir, ., Dir),
-  directory_file_path(Dir, 'id-schema.nt', File),
+  directory_file_path(Dir, 'sameas-schema.nt', File),
   write_to_file(File, extract_schema_(Hdt)).
 extract_schema_(Hdt, Out) :-
   forall(

@@ -38,7 +38,7 @@ $ swipl -s tsv2rocksdb.pl -g run -t halt --intput=/abc/xyz/data.tsv.gz --output=
    rlimit(nofile, _, 10 000).
 
 run :-
-  cli_argument(input, 'id-sorted.tsv.gz', File),
+  cli_argument(input, 'sameas-sorted.tsv.gz', File),
   flag(number_of_sets, _, 0),
   (   debugging(id)
   ->  get_time(Start),

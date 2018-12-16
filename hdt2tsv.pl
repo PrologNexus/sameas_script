@@ -12,7 +12,7 @@ GNU zip compression is used.
 Example invocation:
 
 ```sh
-$ swipl -s hdt2tsv.pl -g run -t halt --intput=/abc/xyz/data.hdt --output=/abc/xyz/id-unsorted.tsv.gz
+$ swipl -s hdt2tsv.pl -g run -t halt --intput=/abc/xyz/data.hdt --output=/abc/xyz/sameas-unsorted.tsv.gz
 ```
 
 ---
@@ -33,7 +33,7 @@ run :-
   hdt_call_file(FromFile, run).
 
 run(Hdt) :-
-  cli_argument(output, 'id-unsorted.tsv.gz', ToFile),
+  cli_argument(output, 'sameas-unsorted.tsv.gz', ToFile),
   write_to_file(ToFile, run(Hdt)).
 
 run(Hdt, Out) :-
