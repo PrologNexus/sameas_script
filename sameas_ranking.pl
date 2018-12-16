@@ -36,15 +36,11 @@ run :-
 
 run(In) :-
   cli_argument(output, ToDir),
-  maplist(
-    directory_file_path(ToDir),
-    [id_terms,pair_rank,term_id],
-    [Dir1,Dir2,Dir3]
-  ),
+  maplist(directory_file_path(ToDir), [id_terms,pair_rank,term_id], [Dir1,Dir2,Dir3]),
   setup_call_cleanup(
     (
       rocksdb_open(Dir1, Id2terms, [key(int64),merge(rocksdb_merge_set),value(term)]),
-      rocksdb_open(Dir2, Pair2rank, [key(atom),value(double)]),
+      rocksdb_open(Dir2, Pair2rank, [key(term),value(double)]),
       rocksdb_open(Dir3, Term2id, [key(atom),value(int64)])
     ),
     forall(
@@ -57,8 +53,7 @@ run(In) :-
 run(Id2terms, Pair2rank, Term2id, X0, Y0, Err, Weight, Id, Size) :-
   sort([X0,Y0], [X,Y]),
   rocksdb_merge(Id2terms, Id, [X,Y]),
-  atomic_list_concat([X,Y], -, Key),
-  rocksdb_put(Pair2rank, Key, Err),
+  rocksdb_put(Pair2rank, X-Y, Err),
   rocksdb_batch(Term2id, [put(X,Id),put(Y,Id)]),
   assert_link(X, Y, Err, Id, Size),
   (Weight =:= 2 -> assert_link(Y, X, Err, Id, Size) ; true).
