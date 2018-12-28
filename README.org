@@ -4,9 +4,11 @@
 * Installation
 
   1. Install [[http://www.swi-prolog.org][SWI-Prolog]].
+
   2. Install [[https://github.com/wouterbeek/prolog_hdt][prolog_hdt]] and [[https://github.com/wouterbeek/prolog_rocksdb][prolog_rocksdb]].
+
   3. Clone this repository: ~git clone
-     https://github.com/wouterbeek/sameas_scripts~
+     https://github.com/wouterbeek/sameas_scripts~.
 
 * Usage
 
@@ -16,10 +18,9 @@ the results in a given TSV output file.  If the output file name ends
 in ~.gz~ the output is automatically compressed using GNU zip.
 
 #+BEGIN_SRC sh
-$ swipl -s hdt2tsv.pl -g run -t halt --input="FILE" --output="FILE"
+swipl -s hdt2tsv.pl -g run -t halt --input="FILE" --output="FILE"
 #+END_SRC
 
 ** sort_tsv
 Use GNU sort to sort the ~owl:sameAs~ pairs that were extracted in the
 previous step.
-
