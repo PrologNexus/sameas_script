@@ -25,28 +25,25 @@ When `<output-directory>' is not specified, it is the same as the
 :- use_module(library(rocksdb)).
 
 run :-
-  % command-line arguments
   cli_arguments(Args),
-  (Args = [FromDir] -> ToDir = FromDir ; Args = [FromDir,ToDir]),
-  % export
-  export_id2terms(FromDir, ToDir, ToFile1),
-  export_term2id(FromDir, ToDir, ToFile2),
-  % archive & compress
-  directory_file_path(ToDir, 'closure.tgz', ToFile),
-  archive_create(ToFile, [ToFile1,ToFile2], [filter(gzip),format(gnutar)]).
-  %maplist(delete_file, [ToFile1,ToFile2]).
+  (Args = [DbDir] -> ExportDir = DbDir ; Args = [DbDir,ExportDir]),
+  export_id2terms(DbDir, ExportDir, Id2TermsFile),
+  export_term2id(DbDir, ExportDir, Term2idFile),
+  directory_file_path(ExportDir, 'closure.tgz', ExportFile),
+  archive_create(ExportFile, [Id2termsFile,Term2idFile], [filter(gzip),format(gnutar)]),
+  maplist(delete_file, [Id2TermsFile,Term2IdFile]).
 
-export_id2terms(FromDir0, ToDir, ToFile) :-
-  directory_file_path(FromDir0, id2terms, FromDir),
-  directory_file_path(ToDir, 'id2terms.dat', ToFile),
-  call_rocksdb(
-    FromDir,
-    export_id2terms_handle(ToFile),
-    [key(int64),merge(rocksdb_merge_set),value(term)]
-  ).
 
-export_id2terms_handle(ToFile, Db) :-
-  write_to_file(ToFile, export_id2terms_stream(Db)).
+
+% ID-2-TERMS
+
+export_id2terms(DbDir, ExportDir, Id2termsFile) :-
+  directory_file_path(DbDir, id2terms, DbSubdir),
+  directory_file_path(ExportDir, 'id2terms.dat', ExportFile),
+  call_rocksdb(DbSubdir, export_id2terms_handle(ExportFile), [key(int64),merge(rocksdb_merge_set),value(term)]).
+
+export_id2terms_handle(ExportFile, Db) :-
+  write_to_file(ExportFile, export_id2terms_stream(Db)).
 
 export_id2terms_stream(Db, Out) :-
   forall(
@@ -58,13 +55,17 @@ export_id2terms_stream(Db, Out) :-
     )
   ).
 
-export_term2id(FromDir0, ToDir, ToFile) :-
-  directory_file_path(FromDir0, term2id, FromDir),
-  directory_file_path(ToDir, 'term2id.dat', ToFile),
-  call_rocksdb(FromDir, export_term2id_hdt(ToFile), [key(atom),value(int64)]).
 
-export_term2id_hdt(ToFile, Db) :-
-  write_to_file(ToFile, export_term2id_stream(Db)).
+
+% TERM-2-ID
+
+export_term2id(DbDir, ExportDir, ExportFile) :-
+  directory_file_path(DbDir, term2id, DbSubdir),
+  directory_file_path(ExportDir, 'term2id.dat', ExportFile),
+  call_rocksdb(DbSubdir, export_term2id_hdt(ExportFile), [key(atom),value(int64)]).
+
+export_term2id_hdt(ExportFile, Db) :-
+  write_to_file(ExportFile, export_term2id_stream(Db)).
 
 export_term2id_stream(Db, Out) :-
   forall(

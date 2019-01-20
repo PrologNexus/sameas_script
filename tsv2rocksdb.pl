@@ -28,26 +28,18 @@ $ swipl -s tsv2rocksdb.pl -g run -t halt -- <explicit-sorted.tsv.gz> <rocksdb-di
 :- debug(tsv2rocksdb).
 
 :- initialization
-   rlimit(nofile, _, 10 000).
+   rlimit(nofile, _, 250 000).
 
 run :-
   cli_arguments([TsvFile,RocksdbDir]),
   flag(number_of_sets, _, 0),
   debug_time(tsv2rocksdb, "Start time: ~w"),
-  maplist(
-    directory_file_path(RocksdbDir),
-    [term2id,id2terms],
-    [Term2idDir,Id2termsDir]
-  ),
+  maplist(directory_file_path(RocksdbDir), [term2id,id2terms], [Term2idDir,Id2termsDir]),
   maplist(rocksdb_clear, [Term2idDir,Id2termsDir]),
   setup_call_cleanup(
     (
       rocksdb_open(Term2idDir, Term2idDb, [key(atom),value(int64)]),
-      rocksdb_open(
-        Id2termsDir,
-        Id2termsDb,
-        [key(int64),merge(rocksdb_merge_set),value(term)]
-      )
+      rocksdb_open(Id2termsDir, Id2termsDb, [key(int64),merge(rocksdb_merge_set),value(term)])
     ),
     forall(
       file_line(TsvFile, Line),
