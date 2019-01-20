@@ -1,24 +1,17 @@
-:- module(hdt2csv, [run/0]).
+:- module(hdt2tsv, [run/0]).
 
-/** <module> HDT-2-CSV
-
-The location of the input HDT file can be specified with the
-`--input=FILE' command-line argument.
-
-The location of the output TSV file can be specified with the
-`--output=FILE' command-line argument.  If `FILE' ends with `.gz' then
-GNU zip compression is used.
+/** <module> HDT-2-TSV
 
 Example invocation:
 
 ```sh
-$ swipl -s hdt2tsv.pl -g run -t halt --intput=/abc/xyz/data.hdt --output=/abc/xyz/sameas-unsorted.tsv.gz
+$ swipl -s hdt2tsv.pl -g run -t halt -- <explicit.hdt> <explicit-unsorted.tsv.gz>
 ```
 
 ---
 
 @author Wouter Beek
-@version 2017-2018
+@version 2017-2019
 */
 
 :- use_module(library(apply)).
@@ -29,14 +22,13 @@ $ swipl -s hdt2tsv.pl -g run -t halt --intput=/abc/xyz/data.hdt --output=/abc/xy
 :- use_module(library(semweb/rdf_term)).
 
 run :-
-  cli_argument(input, FromFile),
-  hdt_call_file(FromFile, run).
+  cli_arguments([HdtFile,TsvFile]),
+  hdt_call_file(HdtFile, run(TsvFile)).
 
-run(Hdt) :-
-  cli_argument(output, 'sameas-unsorted.tsv.gz', ToFile),
-  write_to_file(ToFile, run(Hdt)).
+run(TsvFile, Hdt) :-
+  write_to_file(TsvFile, run_stream(Hdt)).
 
-run(Hdt, Out) :-
+run_stream(Hdt, Out) :-
   forall(
     (
       hdt_tp0(Hdt, S, owl:sameAs, O),
