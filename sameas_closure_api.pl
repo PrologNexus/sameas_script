@@ -111,7 +111,6 @@ deinit_rocksdb :-
 
 
 init_rocksdb :-
-  gtrace,
   cli_arguments([Dir0]),
   absolute_file_name(Dir0, Dir, [access(read),file_type(directory)]),
   maplist(directory_file_path(Dir), [id2terms,term2id], [Id2termsDir,Term2idDir]),

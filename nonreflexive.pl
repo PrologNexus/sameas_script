@@ -55,7 +55,7 @@ run_line(Out, Line) :-
   (   Dir=="1"
   ->  from_to(S1-O1, S2-O2, From1-To1, From2-To2),
       format_link(Out, LinkLocal, S2-O2, Err, Eq, Links, From2-To2, Link),
-      format(Out, "<~a> a def:SymmetricIdentityStatement.\n", [Link])
+      format(Out, "<~a> a def:IdentityStatement.\n", [Link])
   ;   format_link(Out, LinkLocal, S1-O1, Err, Eq, Links, From1-To1, Link1),
       format_link(Out, LinkLocal, O1-S1, Err, Eq, Links, To1-From1, Link2),
       format(Out, "<~a> a def:SymmetricIdentityStatement.\n", [Link1]),
@@ -65,36 +65,36 @@ run_line(Out, Line) :-
 format_link(Out, LinkLocal, S-O_, Err, Eq, Links, From-To, Link) :-
   format_term(O_, O),
   rdf_prefix_iri(link, LinkLocal, Link),
-  format(Out, "<~a> a def:IdentityStatement;\n", [Link]),
-  format(Out, "  rdf:subject <~a>;\n", [S]),
-  format(Out, "  rdf:predicate owl:sameAs;\n", []),
-  format(Out, "  rdf:object ~a;\n", [O]),
-  format(Out, '  def:id "~a";\n', [LinkLocal]),
-  format(Out, '  def:error "~s"^^xsd:double;\n', [Err]),
-  format(Out, '  rdfs:label "Identity statement ~a"@en-us;\n', [LinkLocal]),
-  community(Out, Eq, From, To),
-  format(Out, "eq:~a a def:EquivalenceSet;\n", [Eq]),
-  format(Out, '  def:id "~a";\n', [Eq]),
-  format(Out, '  def:numberOfLinks "~s"^^xsd:nonNegativeInteger;\n', [Links]),
-  format(Out, '  rdfs:label "Equivalence set ~a."@en-us.\n', [Eq]).
+  format(Out, "<~a> a def:IdentityStatement.\n", [Link]),
+  format(Out, "<~a> rdf:subject <~a>.\n", [Link,S]),
+  format(Out, "<~a> rdf:predicate owl:sameAs.\n", [Link]),
+  format(Out, "<~a> rdf:object ~a.\n", [Link,O]),
+  format(Out, '<~a> def:id "~a".\n', [Link,LinkLocal]),
+  format(Out, '<~a> def:error "~s"^^xsd:double.\n', [Link,Err]),
+  format(Out, '<~a> rdfs:label "Identity statement ~a"@en-us.\n', [Link,LinkLocal]),
+  community(Out, Link, Eq, From, To),
+  format(Out, "eq:~a a def:EquivalenceSet.\n", [Eq]),
+  format(Out, 'eq:~a def:id "~a".\n', [Eq,Eq]),
+  format(Out, 'eq:~a def:numberOfLinks "~s"^^xsd:nonNegativeInteger.\n', [Eq,Links]),
+  format(Out, 'eq:~a rdfs:label "Equivalence set ~a."@en-us.\n', [Eq,Eq]).
 
-community(Out, Eq, Comm, Comm) :- !,
-  format(Out, "  def:community comm:~a-~a.\n", [Eq,Comm]),
-  format(Out, "comm:~a-~a a def:Community;\n", [Eq,Comm]),
-  format(Out, "  def:equivalenceSet eq:~a;\n", [Eq]),
-  format(Out, '  def:id "~a-~a";\n', [Eq,Comm]),
-  format(Out, '  rdfs:label "Community ~a in equivalence set ~a."@en-us.\n', [Comm,Eq]).
-community(Out, Eq, From, To) :-
-  format(Out, "  def:fromCommunity comm:~a-~a;\n", [Eq,From]),
-  format(Out, "  def:toCommunity comm:~a-~a.\n", [Eq,To]),
-  format(Out, "comm:~a-~a a def:Community;\n", [Eq,From]),
-  format(Out, "  def:equivalenceSet eq:~a;\n", [Eq]),
-  format(Out, '  def:id "~a-~a";\n', [Eq,From]),
-  format(Out, '  rdfs:label "Community ~a in equivalence set ~a."@en-us.\n', [From,Eq]),
-  format(Out, "comm:~a-~a a def:Community;\n", [Eq,To]),
-  format(Out, "  def:equivalenceSet eq:~a;\n", [Eq]),
-  format(Out, '  def:id "~a-~a";\n', [Eq,To]),
-  format(Out, '  rdfs:label "Community ~a in equivalence set ~a."@en-us.\n', [To,Eq]).
+community(Out, Link, Eq, Comm, Comm) :- !,
+  format(Out, "<~a> def:community comm:~a-~a.\n", [Link,Eq,Comm]),
+  format(Out, "comm:~a-~a a def:Community.\n", [Eq,Comm]),
+  format(Out, "comm:~a-~a def:equivalenceSet eq:~a.\n", [Eq,Comm,Eq]),
+  format(Out, 'comm:~a-~a def:id "~a-~a".\n', [Eq,Comm,Eq,Comm]),
+  format(Out, 'comm:~a-~a rdfs:label "Community ~a in equivalence set ~a."@en-us.\n', [Eq,Comm,Comm,Eq]).
+community(Out, Link, Eq, From, To) :-
+  format(Out, "<~a> def:fromCommunity comm:~a-~a.\n", [Link,Eq,From]),
+  format(Out, "<~a> def:toCommunity comm:~a-~a.\n", [Link,Eq,To]),
+  format(Out, "comm:~a-~a a def:Community.\n", [Eq,From]),
+  format(Out, "comm:~a-~a def:equivalenceSet eq:~a.\n", [Eq,From,Eq]),
+  format(Out, 'comm:~a-~a def:id "~a-~a".\n', [Eq,From,Eq,From]),
+  format(Out, 'comm:~a-~a rdfs:label "Community ~a in equivalence set ~a."@en-us.\n', [Eq,From,From,Eq]),
+  format(Out, "comm:~a-~a a def:Community.\n", [Eq,To]),
+  format(Out, "comm:~a-~a def:equivalenceSet eq:~a.\n", [Eq,To,Eq]),
+  format(Out, 'comm:~a-~a def:id "~a-~a".\n', [Eq,To,Eq,To]),
+  format(Out, 'comm:~a-~a rdfs:label "Community ~a in equivalence set ~a."@en-us.\n', [Eq,To,To,Eq]).
 
 format_prefixes(Out) :-
   format(Out, "prefix comm: <https://sameas.cc/id/comm/>\n", []),
