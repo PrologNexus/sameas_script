@@ -7,7 +7,7 @@
 3 - the Error Degree (which is a value between 0 and 1; 0 means probably correct, 1 means probably erroneous),
 4 - the Weight of the link (if duplicate symmetric the weight is 2, if not the weight is 1),
 5 - the equality set ID in which this link belongs,
-6 - the number of links in this equality set,
+6 - the number of terms in this equality set,
 7 - the community ID (if it's a number (e.g. 23) then it's an intra-community link relating two terms that belong to the community 23, if the ID is two numbers related by a dash (e.g. 3-5) it means that it is an inter-community link relating terms from the community 3 and the community 5.
 
 0.99 undirected different-namespaces
@@ -20,15 +20,16 @@
 
 :- use_module(library(file_ext)).
 :- use_module(library(semweb/hdt_dataset)).
+:- use_module(library(semweb/rdf_export)).
 :- use_module(library(semweb/rdf_prefix)).
 :- use_module(library(semweb/rdf_term)).
 :- use_module(library(stream_ext)).
 
 :- maplist(rdf_register_prefix, [
-     comm-'https://sameas.cc/id/comm/',
-     def-'https://sameas.cc/def/',
-     eq-'https://sameas.cc/id/eq/',
-     link-'https://sameas.cc/id/link/'
+     comm-'https://krr.triply.cc/krr/sameas-meta/id/comm/',
+     def-'https://krr.triply.cc/krr/sameas-meta/def/',
+     eq-'https://krr.triply.cc/krr/sameas-meta/id/eq/',
+     link-'https://krr.triply.cc/krr/sameas-meta/id/link/'
    ]).
 
 run :-
@@ -36,7 +37,7 @@ run :-
   read_write_files('sameas-ranking.tsv.gz', 'nonreflexive.ttl.gz', run).
 
 run(In, Out) :-
-  format_prefixes(Out),
+  rdf_write_triple(Out, def:'SymmetricIdentityStatement', rdfs:subClassOf, def:'IdentityStatement'),
   flag(link_id, _, 0),
   forall(
     stream_line(In, Line),
@@ -48,72 +49,73 @@ run_line(Out, Line) :-
   atom_number(LinkLocal, LinkN),
   split_string(Line, "	", "", [S1_|T1]),
   atom_string(S1, S1_),
-  once(append(T2, [Err,Dir,Eq0,Links,Comm0], T1)),
+  once(append(T2, [Err_,Dir,EqName_,Terms_,CommName_], T1)),
+  maplist(number_string, [Err,Terms], [Err_,Terms_]),
   atomic_list_concat(T2, '	', O1),
-  maplist(atom_string, [Comm,Eq], [Comm0,Eq0]),
-  from_to_community(Comm, From1-To1),
-  (   Dir=="1"
-  ->  from_to(S1-O1, S2-O2, From1-To1, From2-To2),
-      format_link(Out, LinkLocal, S2-O2, Err, Eq, Links, From2-To2, Link),
-      format(Out, "<~a> a def:IdentityStatement.\n", [Link])
-  ;   format_link(Out, LinkLocal, S1-O1, Err, Eq, Links, From1-To1, Link1),
-      format_link(Out, LinkLocal, O1-S1, Err, Eq, Links, To1-From1, Link2),
-      format(Out, "<~a> a def:SymmetricIdentityStatement.\n", [Link1]),
-      format(Out, "<~a> a def:SymmetricIdentityStatement.\n", [Link2])
+  maplist(atom_string, [CommName,EqName], [CommName_,EqName_]),
+  from_to_community(CommName, FromName1-ToName1),
+  (   Dir == "1"
+  ->  from_to(S1-O1, S2-O2, FromName1-ToName1, FromName2-ToName2),
+      format_link(Out, LinkLocal, S2-O2, Err, EqName, Terms, FromName2-ToName2, Link),
+      rdf_write_triple(Out, Link, rdf:type, def:'IdentityStatement')
+  ;   format_link(Out, LinkLocal, S1-O1, Err, EqName, Terms, FromName1-ToName1, Link1),
+      format_link(Out, LinkLocal, O1-S1, Err, EqName, Terms, ToName1-FromName1, Link2),
+      rdf_write_triple(Out, Link1, rdf:type, def:'SymmetricIdentityStatement'),
+      rdf_write_triple(Out, Link2, rdf:type, def:'SymmetricIdentityStatement')
   ).
 
-format_link(Out, LinkLocal, S-O_, Err, Eq, Links, From-To, Link) :-
-  format_term(O_, O),
+format_link(Out, LinkLocal, S-O, Err, EqName, Terms, FromName-ToName, Link) :-
   rdf_prefix_iri(link, LinkLocal, Link),
-  format(Out, "<~a> a def:IdentityStatement.\n", [Link]),
-  format(Out, "<~a> rdf:subject <~a>.\n", [Link,S]),
-  format(Out, "<~a> rdf:predicate owl:sameAs.\n", [Link]),
-  format(Out, "<~a> rdf:object ~a.\n", [Link,O]),
-  format(Out, '<~a> def:id "~a".\n', [Link,LinkLocal]),
-  format(Out, '<~a> def:error "~s"^^xsd:double.\n', [Link,Err]),
-  format(Out, '<~a> rdfs:label "Identity statement ~a"@en-us.\n', [Link,LinkLocal]),
-  community(Out, Link, Eq, From, To),
-  format(Out, "eq:~a a def:EquivalenceSet.\n", [Eq]),
-  format(Out, 'eq:~a def:id "~a".\n', [Eq,Eq]),
-  format(Out, 'eq:~a def:numberOfLinks "~s"^^xsd:nonNegativeInteger.\n', [Eq,Links]),
-  format(Out, 'eq:~a rdfs:label "Equivalence set ~a."@en-us.\n', [Eq,Eq]).
+  rdf_write_triple(Out, Link, rdf:subject, S),
+  rdf_write_triple(Out, Link, rdf:predicate, owl:sameAs),
+  rdf_write_triple(Out, Link, rdf:object, O),
+  rdf_write_triple(Out, Link, def:error, double(Err)),
+  format(string(LinkLabel), "Identity statement ~a", [LinkLocal]),
+  rdf_write_triple(Out, Link, rdfs:label, LinkLabel-[en,us]),
+  community(Out, Link, EqName, FromName, ToName),
+  rdf_prefix_iri(eq, EqName, Eq),
+  rdf_write_triple(Out, Eq, rdf:type, def:'EquivalenceSet'),
+  rdf_write_triple(Out, Eq, def:cardinality, nonneg(Terms)),
+  format(string(EqLabel), "Equivalence set ~a", [EqName]),
+  rdf_write_triple(Out, Eq, rdfs:label, EqLabel-[en,us]).
 
-community(Out, Link, Eq, Comm, Comm) :- !,
-  format(Out, "<~a> def:community comm:~a-~a.\n", [Link,Eq,Comm]),
-  format(Out, "comm:~a-~a a def:Community.\n", [Eq,Comm]),
-  format(Out, "comm:~a-~a def:equivalenceSet eq:~a.\n", [Eq,Comm,Eq]),
-  format(Out, 'comm:~a-~a def:id "~a-~a".\n', [Eq,Comm,Eq,Comm]),
-  format(Out, 'comm:~a-~a rdfs:label "Community ~a in equivalence set ~a."@en-us.\n', [Eq,Comm,Comm,Eq]).
-community(Out, Link, Eq, From, To) :-
-  format(Out, "<~a> def:fromCommunity comm:~a-~a.\n", [Link,Eq,From]),
-  format(Out, "<~a> def:toCommunity comm:~a-~a.\n", [Link,Eq,To]),
-  format(Out, "comm:~a-~a a def:Community.\n", [Eq,From]),
-  format(Out, "comm:~a-~a def:equivalenceSet eq:~a.\n", [Eq,From,Eq]),
-  format(Out, 'comm:~a-~a def:id "~a-~a".\n', [Eq,From,Eq,From]),
-  format(Out, 'comm:~a-~a rdfs:label "Community ~a in equivalence set ~a."@en-us.\n', [Eq,From,From,Eq]),
-  format(Out, "comm:~a-~a a def:Community.\n", [Eq,To]),
-  format(Out, "comm:~a-~a def:equivalenceSet eq:~a.\n", [Eq,To,Eq]),
-  format(Out, 'comm:~a-~a def:id "~a-~a".\n', [Eq,To,Eq,To]),
-  format(Out, 'comm:~a-~a rdfs:label "Community ~a in equivalence set ~a."@en-us.\n', [Eq,To,To,Eq]).
+% link within a community
+community(Out, Link, EqName, CommName, CommName) :- !,
+  rdf_prefix_iri(eq, EqName, Eq),
+  community_iri(EqName, CommName, Comm),
+  community_label(EqName, CommName, CommLabel),
+  rdf_write_triple(Out, Link, def:community, Comm),
+  rdf_write_triple(Out, Comm, rdf:type, def:'Community'),
+  rdf_write_triple(Out, Comm, def:equivalenceSet, Eq),
+  format(string(CommLabel), "Community ~a in equivalence set ~a", [CommName,EqName]),
+  rdf_write_triple(Out, Comm, rdfs:label, CommLabel-[en,us]).
+% link between two communities
+community(Out, Link, EqName, FromName, ToName) :-
+  rdf_prefix_iri(eq, EqName, Eq),
+  maplist(community_iri(EqName), [FromName,ToName], [From,To]),
+  maplist(community_label(EqName), [FromName,ToName], [FromLabel,ToLabel]),
+  % from community
+  rdf_write_triple(Out, Link, def:fromCommunity, From),
+  rdf_write_triple(Out, From, rdf:type, def:'Community'),
+  rdf_write_triple(Out, From, def:equivalenceSet, Eq),
+  rdf_write_triple(Out, From, rdfs:label, FromLabel-[en,us]),
+  % to community
+  rdf_write_triple(Out, Link, def:toCommunity, To),
+  rdf_write_triple(Out, To, rdf:type, def:'Community'),
+  rdf_write_triple(Out, To, def:equivalenceSet, Eq),
+  rdf_write_triple(Out, To, rdfs:label, ToLabel-[en,us]).
 
-format_prefixes(Out) :-
-  format(Out, "prefix comm: <https://sameas.cc/id/comm/>\n", []),
-  format(Out, "prefix eq: <https://sameas.cc/id/eq/>\n", []),
-  format(Out, "prefix owl: <http://www.w3.org/2002/07/owl#>\n", []),
-  format(Out, "prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n", []),
-  format(Out, "prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n", []),
-  format(Out, "prefix def: <https://sameas.cc/def/>\n", []),
-  format(Out, "prefix xsd: <http://www.w3.org/2001/XMLSchema#>\n", []).
+community_iri(EqName, CommName, Comm) :-
+  atomic_list_concat([EqName,CommName], -, CommLocal),
+  rdf_prefix_iri(comm, CommLocal, Comm).
 
-format_term(Atom, Atom) :-
-  atom_prefix(Atom, '"'), !.
-format_term(Atom, Term) :-
-  format(atom(Term), "<~a>", [Atom]).
+community_label(EqName, CommName, CommLabel) :-
+  format(string(CommLabel), "Community ~a in equivalence set ~a", [CommName,EqName]).
 
-from_to(S-O, S-O, From-To, From-To) :-
+from_to(S-O, S-O, FromName-ToName, FromName-ToName) :-
   hdt_tp(S, owl:sameAs, O), !.
-from_to(S-O, O-S, From-To, To-From).
+from_to(S-O, O-S, FromName-ToName, ToName-FromName).
 
 from_to_community(Comm, From1-To1) :-
-  atomic_list_concat([From1,To1], "-", Comm), !.
+  atomic_list_concat([From1,To1], -, Comm), !.
 from_to_community(Comm, Comm-Comm).
