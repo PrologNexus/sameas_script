@@ -20,6 +20,7 @@
 
 :- use_module(library(file_ext)).
 :- use_module(library(semweb/hdt_dataset)).
+:- use_module(library(semweb/hdt_term)).
 :- use_module(library(semweb/rdf_export)).
 :- use_module(library(semweb/rdf_prefix)).
 :- use_module(library(semweb/rdf_term)).
@@ -34,7 +35,7 @@
 
 run :-
   hdt_set_default_graph('explicit.hdt'),
-  read_write_files('sameas-ranking.tsv.gz', 'nonreflexive.ttl.gz', run).
+  read_write_files('sameas-ranking.tsv.gz', 'nonreflexive.nt.gz', run).
 
 run(In, Out) :-
   rdf_write_triple(Out, def:'SymmetricIdentityStatement', rdfs:subClassOf, def:'IdentityStatement'),
@@ -52,14 +53,15 @@ run_line(Out, Line) :-
   once(append(T2, [Err_,Dir,EqName_,Terms_,CommName_], T1)),
   maplist(number_string, [Err,Terms], [Err_,Terms_]),
   atomic_list_concat(T2, '	', O1),
+  hdt_atom_term(O1, O2),
   maplist(atom_string, [CommName,EqName], [CommName_,EqName_]),
   from_to_community(CommName, FromName1-ToName1),
   (   Dir == "1"
-  ->  from_to(S1-O1, S2-O2, FromName1-ToName1, FromName2-ToName2),
-      format_link(Out, LinkLocal, S2-O2, Err, EqName, Terms, FromName2-ToName2, Link),
+  ->  from_to(S1-O2, S2-O3, FromName1-ToName1, FromName2-ToName2),
+      format_link(Out, LinkLocal, S2-O3, Err, EqName, Terms, FromName2-ToName2, Link),
       rdf_write_triple(Out, Link, rdf:type, def:'IdentityStatement')
-  ;   format_link(Out, LinkLocal, S1-O1, Err, EqName, Terms, FromName1-ToName1, Link1),
-      format_link(Out, LinkLocal, O1-S1, Err, EqName, Terms, ToName1-FromName1, Link2),
+  ;   format_link(Out, LinkLocal, S1-O2, Err, EqName, Terms, FromName1-ToName1, Link1),
+      format_link(Out, LinkLocal, O2-S1, Err, EqName, Terms, ToName1-FromName1, Link2),
       rdf_write_triple(Out, Link1, rdf:type, def:'SymmetricIdentityStatement'),
       rdf_write_triple(Out, Link2, rdf:type, def:'SymmetricIdentityStatement')
   ).
@@ -112,6 +114,8 @@ community_iri(EqName, CommName, Comm) :-
 community_label(EqName, CommName, CommLabel) :-
   format(string(CommLabel), "Community ~a in equivalence set ~a", [CommName,EqName]).
 
+from_to(S-O, S-O, FromName-ToName, FromName-ToName) :-
+  rdf_is_literal(O), !.
 from_to(S-O, S-O, FromName-ToName, FromName-ToName) :-
   hdt_tp(S, owl:sameAs, O), !.
 from_to(S-O, O-S, FromName-ToName, ToName-FromName).
