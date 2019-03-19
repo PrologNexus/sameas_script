@@ -38,7 +38,6 @@ run :-
   read_write_files('sameas-ranking.tsv.gz', 'nonreflexive.nt.gz', run).
 
 run(In, Out) :-
-  rdf_write_triple(Out, def:'SymmetricIdentityStatement', rdfs:subClassOf, def:'IdentityStatement'),
   flag(link_id, _, 0),
   forall(
     stream_line(In, Line),
@@ -46,8 +45,8 @@ run(In, Out) :-
   ).
 
 run_line(Out, Line) :-
-  flag(link_id, LinkN, LinkN+1),
-  atom_number(LinkLocal, LinkN),
+  flag(link_id, LinkN1, LinkN1+1),
+  atom_number(LinkLocal1, LinkN1),
   split_string(Line, "	", "", [S1|T1]),
   hdt_atom_term(S1, S2),
   once(append(T2, [Err_,Dir,EqName_,Terms_,CommName_], T1)),
@@ -58,22 +57,22 @@ run_line(Out, Line) :-
   from_to_community(CommName, FromName1-ToName1),
   (   Dir == "1"
   ->  from_to(S2-O2, S3-O3, FromName1-ToName1, FromName2-ToName2),
-      format_link(Out, LinkLocal, S3-O3, Err, EqName, Terms, FromName2-ToName2, Link),
-      rdf_write_triple(Out, Link, rdf:type, def:'IdentityStatement')
-  ;   format_link(Out, LinkLocal, S2-O2, Err, EqName, Terms, FromName1-ToName1, Link1),
-      format_link(Out, LinkLocal, O2-S2, Err, EqName, Terms, ToName1-FromName1, Link2),
-      rdf_write_triple(Out, Link1, rdf:type, def:'SymmetricIdentityStatement'),
-      rdf_write_triple(Out, Link2, rdf:type, def:'SymmetricIdentityStatement')
+      format_link(Out, LinkLocal1, S3-O3, Err, EqName, Terms, FromName2-ToName2)
+  ;   format_link(Out, LinkLocal1, S2-O2, Err, EqName, Terms, FromName1-ToName1),
+      flag(link_id, LinkN2, LinkN2+1),
+      atom_number(LinkLocal2, LinkN2),
+      format_link(Out, LinkLocal2, O2-S2, Err, EqName, Terms, ToName1-FromName1)
   ).
 
-format_link(Out, LinkLocal, S-O, Err, EqName, Terms, FromName-ToName, Link) :-
+format_link(Out, LinkLocal, S-O, Err, EqName, Terms, FromName-ToName) :-
   rdf_prefix_iri(link, LinkLocal, Link),
+  rdf_write_triple(Out, Link, rdf:type, def:'IdentityStatement'),
+  format(string(LinkLabel), "Identity statement ~a", [LinkLocal]),
+  rdf_write_triple(Out, Link, rdfs:label, LinkLabel-[en,us]),
   rdf_write_triple(Out, Link, rdf:subject, S),
   rdf_write_triple(Out, Link, rdf:predicate, owl:sameAs),
   rdf_write_triple(Out, Link, rdf:object, O),
   rdf_write_triple(Out, Link, def:error, double(Err)),
-  format(string(LinkLabel), "Identity statement ~a", [LinkLocal]),
-  rdf_write_triple(Out, Link, rdfs:label, LinkLabel-[en,us]),
   community(Out, Link, EqName, FromName, ToName),
   rdf_prefix_iri(eq, EqName, Eq),
   rdf_write_triple(Out, Eq, rdf:type, def:'EquivalenceSet'),
