@@ -1,6 +1,8 @@
 #+TITLE: sameas_script: Scripts for generating the ~owl:sameAs~ Cloud
 #+AUTHOR: Wouter Beek
 
+MetaLink is an identity meta-dataset that describes over 550M `owl:sameAs` statements together with their error degree, and their transitive closure. MetaLink can be used to look up the trustworthiness of a specific link, or to look up links for a specific node. The error degree is a value between 0.0 and 1.0. Identity links with high error degree (e.g. `>0.99`) have high probability of being erroneous, hence it is recommended to discard such links in your Linked Data application.
+
 * Installation
 
   1. Install [[http://www.swi-prolog.org][SWI-Prolog]].
@@ -24,3 +26,65 @@ swipl -s hdt2tsv.pl -g run -t halt --input="FILE" --output="FILE"
 ** sort_tsv
 Use GNU sort to sort the ~owl:sameAs~ pairs that were extracted in the
 previous step.
+
+* MetaLink Description
+Each existing identity statement in the LOD-a-lot dataset (e.g. ~<ns1:x, owl:sameAs, ns2:y>~) is reified as the following: 
+#+BEGIN_SRC
+PREFIX meta: <https://krr.triply.cc/krr/sameas-meta/>
+
+meta:id/link/<IDENTITY_STATEMENT_ID>, rdf:type, meta:def/IdentityStatement .
+meta:id/link/<IDENTITY_STATEMENT_ID>, rdfs:label, "Identity Statement <IDENTITY_STATEMENT_ID>" .
+meta:id/link/<IDENTITY_STATEMENT_ID>, rdf:subject, ns1:x .
+meta:id/link/<IDENTITY_STATEMENT_ID>, rdf:predicate, owl:sameAs .
+meta:id/link/<IDENTITY_STATEMENT_ID>, rdf:object, ns2:y .
+meta:id/link/<IDENTITY_STATEMENT_ID>, meta:def/error, "0.2"^^<http://www.w3.org/2001/XMLSchema#double> .
+meta:id/link/<IDENTITY_STATEMENT_ID>, meta:def/community, meta:id/comm/<EQUIVALENCE_SET_ID>/<COMMUNITY_ID> .
+#+END_SRC
+
+* Read and Query MetaLink locally with Python
+
+  A. Download the MetaLink HDT file and its Index from:
+  #+BEGIN_SRC
+  https://doi.org/10.5281/zenodo.3227976
+  #+END_SRC
+
+
+  OPTIONAL. Download the LOD-a-lod dataset and its Index from:
+  #+BEGIN_SRC
+  http://lod-a-lot.lod.labs.vu.nl/
+  #+END_SRC
+
+
+  B.    Install the [[https://pypi.org/project/hdt/][HDT Python library]]
+  #+BEGIN_SRC
+  pip install hdt
+  #+END_SRC
+
+  C. Load the HDT file:
+  #+BEGIN_SRC
+  from hdt import HDTDocument
+  metalink = HDTDocument("data.hdt")
+  #+END_SRC
+
+
+  D. Get the number of sameAs links with an error degree of 0.0 (i.e. have very high probability of correctness)
+  #+BEGIN_SRC
+  (triples, cardinality) = metalink.search_triples('', '', '"0.0"^^<http://www.w3.org/2001/XMLSchema#double>')
+  print("There is","{:,}".format(cardinality), "sameAs links with an error degree of 0.0")
+  #+END_SRC
+
+
+  E. Retrieve the metadata of 2 random sameAs links with an error degree of 0.0
+  #+BEGIN_SRC
+  (all_triples_with_error_0, cardinality_triples_with_error_0) = metalink.search_triples('', '', '"0.0"^^<http://www.w3.org/2001/XMLSchema#double>')
+  print("There is","{:,}".format(cardinality_triples_with_error_0), "sameAs links with an error degree of 0.0")
+  counter = 0
+  for s,p,o in all_triples_with_error_0:
+    counter+=1
+      if counter > 2:
+        break
+      else:
+        (meta_triples, cardinality_meta_triples) = metalink.search_triples(s, '', '')
+        for s1,p1,o1 in meta_triples:
+            print(s1,p1,o1)
+  #+END_SRC
