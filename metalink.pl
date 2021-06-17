@@ -1,6 +1,6 @@
-:- module(nonreflexive, [run/0]).
+:- module(metalink, [run/0]).
 
-/** <module> Script for processing the file `sameas-ranking.tsv.gz'
+/** <module> MetaLink: Script for generating the dataset based on file `sameas-ranking.tsv.gz'
 
 [3]0.5, [4]1, [5]0, [6]1, [7]0
 
@@ -12,6 +12,17 @@
 
 0.99 undirected different-namespaces
 0.4 undirected different-namespaces
+
+(- 177794 1)177.793
+(* 177794 177794)31.610.706.436
+
+Since identity sets can contain tens of thousands of terms, the
+difference between the implicit and the explicit identity relation can
+amount to billions of assertions.
+
+TODO: include reflexive explicit links
+TODO: fix cardinality for eq
+TODO: add cardinality for comm
 */
 
 :- use_module(library(apply)).
@@ -27,15 +38,15 @@
 :- use_module(library(stream_ext)).
 
 :- maplist(rdf_register_prefix, [
-     comm-'https://krr.triply.cc/krr/sameas-meta/id/comm/',
-     def-'https://krr.triply.cc/krr/sameas-meta/def/',
-     eq-'https://krr.triply.cc/krr/sameas-meta/id/eq/',
-     link-'https://krr.triply.cc/krr/sameas-meta/id/link/'
+     comm-'https://krr.triply.cc/krr/metalink/id/comm/',
+     def-'https://krr.triply.cc/krr/metalink/def/',
+     eq-'https://krr.triply.cc/krr/metalink/id/eq/',
+     link-'https://krr.triply.cc/krr/metalink/id/link/'
    ]).
 
 run :-
   hdt_set_default_graph('explicit.hdt'),
-  read_write_files('sameas-ranking.tsv.gz', 'nonreflexive.nt.gz', run).
+  read_write_files('sameas-ranking.tsv.gz', 'metalink.nt.gz', run).
 
 run(In, Out) :-
   flag(link_id, _, 0),
@@ -66,45 +77,45 @@ run_line(Out, Line) :-
 
 format_link(Out, LinkLocal, S-O, Err, EqName, Terms, FromName-ToName) :-
   rdf_prefix_iri(link, LinkLocal, Link),
-  rdf_write_triple(Out, Link, rdf:type, def:'IdentityStatement'),
+  rdf_write_triple(Out, tp(Link,rdf:type,def:'IdentityStatement')),
   format(string(LinkLabel), "Identity statement ~a", [LinkLocal]),
-  rdf_write_triple(Out, Link, rdfs:label, LinkLabel-[en,us]),
-  rdf_write_triple(Out, Link, rdf:subject, S),
-  rdf_write_triple(Out, Link, rdf:predicate, owl:sameAs),
-  rdf_write_triple(Out, Link, rdf:object, O),
-  rdf_write_triple(Out, Link, def:error, double(Err)),
+  rdf_write_triple(Out, tp(Link,rdfs:label,LinkLabel-[en,us])),
+  rdf_write_triple(Out, tp(Link,rdf:subject,S)),
+  rdf_write_triple(Out, tp(Link,rdf:predicate,owl:sameAs)),
+  rdf_write_triple(Out, tp(Link,rdf:object,O)),
+  rdf_write_triple(Out, tp(Link,def:error,double(Err))),
   community(Out, Link, EqName, FromName, ToName),
   rdf_prefix_iri(eq, EqName, Eq),
-  rdf_write_triple(Out, Eq, rdf:type, def:'EquivalenceSet'),
-  rdf_write_triple(Out, Eq, def:cardinality, nonneg(Terms)),
+  rdf_write_triple(Out, tp(Eq,rdf:type,def:'EquivalenceSet')),
+  rdf_write_triple(Out, tp(Eq,def:cardinality,nonneg(Terms))),
   format(string(EqLabel), "Equivalence set ~a", [EqName]),
-  rdf_write_triple(Out, Eq, rdfs:label, EqLabel-[en,us]).
+  rdf_write_triple(Out, tp(Eq,rdfs:label,EqLabel-[en,us])).
 
 % link within a community
 community(Out, Link, EqName, CommName, CommName) :- !,
   rdf_prefix_iri(eq, EqName, Eq),
   community_iri(EqName, CommName, Comm),
   community_label(EqName, CommName, CommLabel),
-  rdf_write_triple(Out, Link, def:community, Comm),
-  rdf_write_triple(Out, Comm, rdf:type, def:'Community'),
-  rdf_write_triple(Out, Comm, def:equivalenceSet, Eq),
+  rdf_write_triple(Out, tp(Link,def:community,Comm)),
+  rdf_write_triple(Out, tp(Comm,rdf:type,def:'Community')),
+  rdf_write_triple(Out, tp(Comm,def:equivalenceSet,Eq)),
   format(string(CommLabel), "Community ~a in equivalence set ~a", [CommName,EqName]),
-  rdf_write_triple(Out, Comm, rdfs:label, CommLabel-[en,us]).
+  rdf_write_triple(Out, tp(Comm,rdfs:label,CommLabel-[en,us])).
 % link between two communities
 community(Out, Link, EqName, FromName, ToName) :-
   rdf_prefix_iri(eq, EqName, Eq),
   maplist(community_iri(EqName), [FromName,ToName], [From,To]),
   maplist(community_label(EqName), [FromName,ToName], [FromLabel,ToLabel]),
   % from community
-  rdf_write_triple(Out, Link, def:fromCommunity, From),
-  rdf_write_triple(Out, From, rdf:type, def:'Community'),
-  rdf_write_triple(Out, From, def:equivalenceSet, Eq),
-  rdf_write_triple(Out, From, rdfs:label, FromLabel-[en,us]),
+  rdf_write_triple(Out, tp(Link,def:fromCommunity,From)),
+  rdf_write_triple(Out, tp(From,rdf:type,def:'Community')),
+  rdf_write_triple(Out, tp(From,def:equivalenceSet,Eq)),
+  rdf_write_triple(Out, tp(From,rdfs:label,FromLabel-[en,us])),
   % to community
-  rdf_write_triple(Out, Link, def:toCommunity, To),
-  rdf_write_triple(Out, To, rdf:type, def:'Community'),
-  rdf_write_triple(Out, To, def:equivalenceSet, Eq),
-  rdf_write_triple(Out, To, rdfs:label, ToLabel-[en,us]).
+  rdf_write_triple(Out, tp(Link,def:toCommunity,To)),
+  rdf_write_triple(Out, tp(To,rdf:type,def:'Community')),
+  rdf_write_triple(Out, tp(To,def:equivalenceSet,Eq)),
+  rdf_write_triple(Out, tp(To,rdfs:label,ToLabel-[en,us])).
 
 community_iri(EqName, CommName, Comm) :-
   atomic_list_concat([EqName,CommName], -, CommLocal),

@@ -44,7 +44,7 @@ extract_explicit_(Hdt) :-
 extract_explicit_(Hdt, Out) :-
   forall(
     hdt_tp0(Hdt, S, owl:sameAs, O),
-    rdf_write_triple(Out, S, owl:sameAs, O)
+    rdf_write_triple(Out, tp(S,owl:sameAs,O))
   ).
 
 
@@ -61,9 +61,9 @@ extract_schema_(Hdt) :-
 extract_schema_(Hdt, Out) :-
   forall(
     hdt_tp0(Hdt, owl:sameAs, P, O),
-    rdf_write_triple(Out, owl:sameAs, P, O)
+    rdf_write_triple(Out, tp(owl:sameAs,P,O))
   ),
   forall(
     hdt_tp0(Hdt, S, P, owl:sameAs),
-    rdf_write_triple(Out, S, P, owl:sameAs)
+    rdf_write_triple(Out, tp(S,P,owl:sameAs))
   ).

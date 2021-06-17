@@ -101,7 +101,7 @@ both_(Term2idDb, Id2termsDb, XId, YId, Ys) :-
   rocksdb_merge_set_(Id2termsDb, XId, Ys),
   % Now that the two identity sets are merged, let all members of Y's
   % original identity set point to X's identity set.
-  maplist({XId}/[Y,Action]>>(Action = put(Y,XId)), Ys, Actions),
+  maplist({XId}/[Y0,Action0]>>(Action0 = put(Y0,XId)), Ys, Actions),
   rocksdb_batch(Term2idDb, Actions),
   % Remove Y's original identity set.
   rocksdb_delete(Id2termsDb, YId).
